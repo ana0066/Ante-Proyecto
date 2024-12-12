@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comentarios</title>
+    <link rel="stylesheet" href="comentarios.css">
+</head>
+<body>
+
+    <div class="container">
+        <div class="head"><h1>Escribe tu mensaje</h1></div>
+        <div><span id="comment">0</span> Comentarios</div>
+        <div class="text"><p>Estamos felices de conocer tú opinión</p></div>
+        <div class="comments"></div>
+        <div class="commentbox">
+            <img src="/img/users.png" alt="usuarios">
+            <div class="content">
+                <h2>Comentar como: </h2>
+                <input type="text" value="Anonumys" class="user">
+
+                <div class="commentinput">
+                    <input type="text" placeholder="Enviar comentario" class="usercomment">
+                    <div class="buttons">
+                        <button type="submit" disabled id="publish">Publish</button>
+                        <div class="notify">
+                            <input type="checkbox" class="notifyinput"> <span>Notify me</span>
+                        </div>
+                    </div>
+                </div>
+                <p class="policy">Este sitio esta protegido por reCAPTCHA and the Google <a href="">privacy policy</a> and </p>
+            </div>
+        </div>
+    </div>
+    
+
+    <script>
+        "use strict"
+
+        const userID = {
+            name: null,
+            identify: null,
+            image: null,
+            message: null,
+            date: null
+        }
+
+        const userComment = document.querySelector(".usercomment");
+        const publishBtn = document.querySelector("#publish");
+        const comments = document.querySelector(".comments");
+        const userName = document.querySelector(".user");
+
+        userComment.addEventListener("input", e => {
+            if(!userComment.value){
+                publishBtn.setAttribute("disabled", "disabled");
+                publishBtn.classList.remove("abled")
+            } else {
+                publishBtn.removeAttribute("disabled");
+                publishBtn.classList.add("abled")
+            }
+        })
+
+        function addPost() {
+            console.log("The button works!");
+
+            if(!userComment.value) return;
+
+            userID.name= userName.value;
+            if(userID.name === "Anonymous"){
+                userID.identify = false;
+                userID.image = "/img/users.png";
+            } else {
+                userID.identify = true;
+                userID.image = "/img/users.png";
+            }
+
+            userID.message = userComment.value;
+            userID.date = new Date().toLocaleString();
+
+            const published = 
+    `<div class="parents">
+        <img src="${userID.image}">
+        <div>
+            <h1>${userID.name}</h1>
+            <p>${userID.message}</p>
+            <div class="engagements">
+                <img src="/img/like.png">
+                <img src="/img/share.png">
+            </div>
+            <span class="date">${userID.date}</span>
+        </div>
+    </div>`;
+            comments.innerHTML += published;
+            userComment.value = "";
+
+            const commentsNum = document.querySelectorAll(".parents").length;
+            document.getElementById("comment").textContent = commentsNum;
+
+        }
+
+async function guardarComentario() {
+    const username = document.querySelector(".user").value.trim() || "Anonymous";
+    const comentario = document.querySelector(".usercomment").value.trim();
+
+    if (!comentario) {
+        alert("El comentario no puede estar vacío.");
+        return;
+    }
+
+    console.log({ username, comentario }); // Verifica qué datos se envían
+
+    try {
+        const response = await fetch("guardar_comentario.php", {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: new URLSearchParams({ username, comentario })
+        });
+
+        const result = await response.json();
+        console.log(result);
+
+        if (result.status === "success") {
+            alert("Comentario guardado correctamente.");
+            document.querySelector(".usercomment").value = ""; // Limpiar el campo
+            cargarComentarios(); // Refrescar comentarios desde la base de datos
+        } else {
+            alert(result.message);
+        }
+    } catch (error) {
+        console.error("Error al enviar el comentario:", error);
+        alert("Hubo un problema al guardar el comentario.");
+    }
+}
+
+// Llamar la función dentro de un evento
+document.getElementById("publish").addEventListener("click", guardarComentario);
+
+
+publishBtn.addEventListener("click", addPost);
+
+
+async function cargarComentarios() {
+    try {
+        const response = await fetch("obtener_comentarios.php");
+        const comentarios = await response.json();
+
+        const commentsContainer = document.querySelector(".comments");
+        commentsContainer.innerHTML = ""; // Limpiar contenedor
+
+        comentarios.forEach(comentario => {
+            const published = `
+            <div class="parents">
+                <img src="/img/users.png" alt="Usuario">
+                <div>
+                    <h1>${comentario.username}</h1>
+                    <p>${comentario.comentario}</p>
+                    <span class="date">${comentario.fecha}</span>
+                </div>
+            </div>`;
+            commentsContainer.innerHTML += published;
+        });
+
+        // Actualizar contador de comentarios
+        document.getElementById("comment").textContent = comentarios.length;
+    } catch (error) {
+        console.error("Error al cargar los comentarios:", error);
+    }
+}
+
+// Llamar esta función al cargar la página
+document.addEventListener("DOMContentLoaded", cargarComentarios);
+
+        
+    </script>
+</body>
+</html>
